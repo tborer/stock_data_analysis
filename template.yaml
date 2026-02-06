@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Stock Data Analysis Application
+  Scheduled Lambda function to scrape, analyze, and email stock insights.
+
+Globals:
+  Function:
+    Timeout: 900 # 15 minutes max
+    MemorySize: 512
+    Environment:
+      Variables:
+        DYNAMODB_TABLE: !Ref ProcessedUrlsTable
+        # Add other env vars here (EMAIL_SENDER, EMAIL_PASSWORD, etc.)
+        # Ideally, use AWS Secrets Manager or Parameter Store for secrets
+
+Resources:
+  StockAnalysisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handler.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProcessedUrlsTable
+        - Statement:
+          - Effect: Allow
+            Action: 
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: "*" # Granting SES permission if you switch to SES later, or generic network access
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 12 * * ? *) # Runs at 12:00 PM UTC daily
+            Name: DailyStockCheck
+            Description: "Triggers the stock analysis job daily"
+
+  ProcessedUrlsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: url_hash
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+Outputs:
+  FunctionArn:
+    Description: "Stock Analysis Lambda Function ARN"
+    Value: !GetAtt StockAnalysisFunction.Arn
+  TableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref ProcessedUrlsTable
