@@ -56,7 +56,7 @@ class SitemapParser:
                     # Sitemap index: <sitemapindex><sitemap><loc>...</loc>...</sitemap></sitemapindex> -> Sitemap
                     
                     is_sitemap = False
-                    if 'sitemap' in root.tag or url.endswith('.xml') or url.endswith('.gz'):
+                    if 'sitemapindex' in root.tag or url.endswith('.xml') or url.endswith('.gz'):
                         is_sitemap = True
                         
                     urls.append({'url': url, 'is_sitemap': is_sitemap})
